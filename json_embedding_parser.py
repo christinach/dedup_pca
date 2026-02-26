@@ -62,10 +62,23 @@ class JSONEmbeddingParser:
     def save_embedded_json(self, data, output_path):
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2)
-    
+
     def get_embeddings_matrix(self, data):
         """
         Returns a numpy array of shape (num_documents, embedding_dim)
         """
-        embeddings = [entry["text_embedding"] for entry in data if "text_embedding" in entry]
+        embeddings = [
+            entry["text_embedding"] for entry in data if "text_embedding" in entry
+        ]
         return np.array(embeddings)
+
+    def find_duplicates(self, similarities, threshold=0.95):
+        """
+        Returns a list of index pairs (i, j) where similarity > threshold and i != j
+        """
+        duplicates = []
+        for i in range(similarities.shape[0]):
+            for j in range(i + 1, similarities.shape[1]):
+                if similarities[i, j] > threshold:
+                    duplicates.append((i, j))
+        return duplicates
