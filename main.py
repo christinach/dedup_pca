@@ -19,10 +19,16 @@ def main():
     duplicates = parser.find_duplicates(similarities, threshold=0.95)
     print("Duplicate pairs (index):", duplicates)
 
+    print(f"Number of duplicate pairs found: {len(duplicates)}")
+
     for i, j in duplicates:
         print(f"Document {i}:", data[i])
         print(f"Document {j}:", data[j])
         print("-" * 40)
+
+        id_i = data[i].get("id", f"index_{i}")
+        id_j = data[j].get("id", f"index_{j}")
+        print(f"Duplicate pair: {id_i} and {id_j}")
 
 
 if __name__ == "__main__":
