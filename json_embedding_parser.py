@@ -1,7 +1,7 @@
 import json
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
@@ -39,15 +39,17 @@ class JSONEmbeddingParser:
 
         for entry in data:
             fields = [
+                entry.get("isbn_display", ""),
+                entry.get("oclc_s", []),
                 entry.get("title_display", ""),
+                entry.get("call_number_display", ""),
+                entry.get("publication_display", ""),
+                entry.get("edition_display", ""),
                 entry.get("lcgft_s", ""),
                 entry.get("rbgenr_s", ""),
-                entry.get("oclec_s", []),
-                entry.get("call_number_display", ""),
                 entry.get("uniform_title_s", ""),
                 entry.get("series_statement_index", ""),
                 entry.get("context_title_index", ""),
-                entry.get("edition_display", ""),
             ]
             text = " ".join(
                 [

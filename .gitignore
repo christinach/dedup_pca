@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+data_with_embeddings/
+similarities_matrix/
+pca_results/
+fixed_json/
+raw_data/
