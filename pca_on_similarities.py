@@ -10,7 +10,7 @@ from json_embedding_parser import JSONEmbeddingParser
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import euclidean_distances
-
+from sklearn.metrics.pairwise import cosine_similarity
 
 def timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -102,7 +102,7 @@ print("Min distance (excluding zero):", np.min(distances[distances > 0]))
 # X_pca: shape (n_samples, n_components)
 distances = euclidean_distances(
     X_pca
-)  # what else can I use to calculate the distance? cosine similarity?
+)
 duplicate_pairs = []
 threshold = 0.74  # Adjust this value
 for i in range(distances.shape[0]):
@@ -127,7 +127,36 @@ n_components_95 = np.argmax(cumulative_variance >= threshold) + 1
 print(
     f"Number of components needed for {int(threshold * 100)}% explained variance: {n_components_95}"
 )  # number of components: 44
+
+# Cosine similarity for PCA-transformed data
+print("Calculating cosine similarity matrix for PCA-transformed data...")
+cos_sim = cosine_similarity(X_pca)
+print("Cosine similarity matrix shape:", cos_sim.shape)
+print("Sample cosine similarities (first row, first 5):", cos_sim[0, 1:6])
+print("Max cosine similarity (excluding self):", np.max(cos_sim[np.eye(cos_sim.shape[0]) == 0]))
+print("Min cosine similarity:", np.min(cos_sim[np.eye(cos_sim.shape[0]) == 0]))
+
+# Find duplicate pairs using cosine similarity
+cosine_threshold = 0.99  # Adjust as needed
+duplicate_cosine_pairs = []
+for i in range(cos_sim.shape[0]):
+    for j in range(i + 1, cos_sim.shape[1]):
+        if cos_sim[i, j] > cosine_threshold:
+            duplicate_cosine_pairs.append((i, j))
+print(f"Found {len(duplicate_cosine_pairs)} potential duplicate pairs using cosine similarity (>{cosine_threshold}) in PCA space.")
+if duplicate_cosine_pairs:
+    print("Duplicate pair indices and record IDs (cosine):")
+    import json
+    with open("fixed_json/incremental_fixed_03032026.json", "r") as f:
+        original_data = json.load(f)
+    for i, j in duplicate_cosine_pairs:
+        id_i = original_data[i].get("id", f"index_{i}")
+        id_j = original_data[j].get("id", f"index_{j}")
+        print(f"Pair: ({i}, {j}) -> IDs: {id_i}, {id_j}")
+print("Min cosine similarity:", np.min(cos_sim[np.eye(cos_sim.shape[0]) == 0]))
+
 plt.show()
 
 print("Showing plots...")
+
 plt.show()
