@@ -104,7 +104,7 @@ distances = euclidean_distances(
     X_pca
 )  # what else can I use to calculate the distance? cosine similarity?
 duplicate_pairs = []
-threshold = 0.3  # Adjust this value
+threshold = 0.74  # Adjust this value
 for i in range(distances.shape[0]):
     for j in range(i + 1, distances.shape[1]):
         if distances[i, j] < threshold:
