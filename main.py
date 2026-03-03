@@ -23,18 +23,23 @@ def main():
     df.to_csv("similarities_matrix/similarities_matrix.csv")
 
     duplicates = parser.find_duplicates(similarities, threshold=0.95)
-    # print("Duplicate pairs (index):", duplicates)
-
     print(f"Number of duplicate pairs found: {len(duplicates)}")
 
     for i, j in duplicates:
-        # print(f"Document {i}:", data[i])
-        # print(f"Document {j}:", data[j])
-        # print("-" * 40)
-
         id_i = data[i].get("id", f"index_{i}")
         id_j = data[j].get("id", f"index_{j}")
         print(f"Duplicate pair: {id_i} and {id_j}")
+
+    # # Create a duplicates matrix (1 for duplicate, 0 otherwise)
+    # duplicates_matrix = np.zeros_like(similarities)
+    # for i, j in duplicates:
+    #     duplicates_matrix[i, j] = 1
+    #     duplicates_matrix[j, i] = 1  # symmetric
+
+    # # Save duplicates matrix as CSV
+    # df_dup = pd.DataFrame(duplicates_matrix, columns=col_names, index=row_names)
+    # df_dup.to_csv("similarities_matrix/duplicates_matrix.csv")
+    # print("Duplicates matrix saved to similarities_matrix/duplicates_matrix.csv")
 
 
 if __name__ == "__main__":
