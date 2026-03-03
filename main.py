@@ -4,8 +4,10 @@ import numpy as np
 
 def main():
     parser = JSONEmbeddingParser()
-    data = parser.parse_and_embed("fixed_json/scsb_nypl_1_fixed.json")
-    parser.save_embedded_json(data, "data_with_embeddings/scsb_nypl_embeddings.json")
+    data = parser.parse_and_embed("fixed_json/incremental_fixed_03032026.json")
+    parser.save_embedded_json(
+        data, "data_with_embeddings/incremental_03032026_embeddings.json"
+    )
     embeddings_matrix = parser.get_embeddings_matrix(data)
     print("Embeddings matrix shape:", embeddings_matrix.shape)
     print(embeddings_matrix)
@@ -16,11 +18,12 @@ def main():
 
     # Save similarities matrix with named columns and rows
     import pandas as pd
+
     n = similarities.shape[0]
-    col_names = [f"embd_{i+1}" for i in range(n)]
-    row_names = [f"doc_{i+1}" for i in range(n)]
+    col_names = [f"embd_{i + 1}" for i in range(n)]
+    row_names = [f"doc_{i + 1}" for i in range(n)]
     df = pd.DataFrame(similarities, columns=col_names, index=row_names)
-    df.to_csv("similarities_matrix/similarities_matrix.csv")
+    df.to_csv("similarities_matrix/similarities_incremental_03032026_matrix.csv")
 
     duplicates = parser.find_duplicates(similarities, threshold=0.95)
     print(f"Number of duplicate pairs found: {len(duplicates)}")

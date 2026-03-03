@@ -10,8 +10,10 @@ from json_embedding_parser import JSONEmbeddingParser
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler
 
+
 def timestamp():
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
 # scaler = StandardScaler()
 # parser = JSONEmbeddingParser()
@@ -25,17 +27,18 @@ def timestamp():
 # print(f"Number of components for 95% variance: {n_components_95}") # number of components for 95% variance: 221
 
 
-
-
-
-print(f"{timestamp()} Loading similarities matrix from 'similarities_matrix/similarities_matrix.csv'...")
-similarities_df = pd.read_csv("similarities_matrix/similarities_matrix.csv", index_col=0)
+print(
+    f"{timestamp()} Loading similarities matrix from 'similarities_matrix/similarities_incremental_03032026_matrix.csv'..."
+)
+similarities_df = pd.read_csv(
+    "similarities_matrix/similarities_incremental_03032026_matrix.csv", index_col=0
+)
 print(f"{timestamp()} Similarities matrix loaded.")
 print(f"Shape of similarities matrix: {similarities_df.shape}")
 X = similarities_df.values
 print(X[:5, :5])  # print first 5 rows and columns of the similarities matrix
 
-n_components = 221
+n_components = 44
 
 
 # print(f"{timestamp()} Running IncrementalPCA with n_components={n_components}...")
@@ -58,7 +61,7 @@ for X_transformed, title in [(X_pca, "PCA")]:
     print(f"Plotting results for {title}...")
     plt.figure(figsize=(8, 8))
     plt.scatter(X_transformed[:, 0], X_transformed[:, 1], color="navy", lw=2)
-    plt.title(title + " on similarities_matrix.csv")
+    plt.title(title + " on similarities_incremental_03032026_matrix.csv")
     plt.axis("equal")
 
 # X_pca is the transformed data
@@ -72,6 +75,27 @@ print(pca.explained_variance_ratio_)
 # Cumulative explained variance
 print("Cumulative explained variance:")
 print(np.cumsum(pca.explained_variance_ratio_))
+
+
+# Plot cumulative explained variance for all components
+# The elbow point of the plot indicates the the number of components to retain for a good balance between dimensionality reduction and information retention
+plt.figure(figsize=(10, 6))
+pca_full = PCA().fit(X)
+cumulative_variance = np.cumsum(pca_full.explained_variance_ratio_)
+plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker="o")
+plt.xlabel("Number of Components")
+plt.ylabel("Cumulative Explained Variance")
+plt.title("Cumulative Explained Variance by Number of PCA Components")
+plt.grid(True)
+plt.tight_layout()
+# Calculate and print the number of components needed for 95% explained variance
+
+threshold = 0.95
+n_components_95 = np.argmax(cumulative_variance >= threshold) + 1
+print(
+    f"Number of components needed for {int(threshold * 100)}% explained variance: {n_components_95}"
+)  # number of components: 44
+plt.show()
 
 print("Showing plots...")
 plt.show()
