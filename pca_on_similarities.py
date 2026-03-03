@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA, IncrementalPCA
 from json_embedding_parser import JSONEmbeddingParser
 from datetime import datetime
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 def timestamp():
@@ -89,6 +90,37 @@ plt.title("Cumulative Explained Variance by Number of PCA Components")
 plt.grid(True)
 plt.tight_layout()
 # Calculate and print the number of components needed for 95% explained variance
+
+distances = euclidean_distances(
+    X_pca
+)  # what else can I use to calculate the distance? cosine similarity?
+print("Sample pairwise distances (first 5):", distances[0, 1:6])
+print("Max distance:", np.max(distances))
+print("Min distance (excluding zero):", np.min(distances[distances > 0]))
+
+# Find duplicates. Change the threshold until we find a reasonable amount of duplicates
+# X_pca: shape (n_samples, n_components)
+distances = euclidean_distances(
+    X_pca
+)  # what else can I use to calculate the distance? cosine similarity?
+duplicate_pairs = []
+threshold = 0.3  # Adjust this value
+for i in range(distances.shape[0]):
+    for j in range(i + 1, distances.shape[1]):
+        if distances[i, j] < threshold:
+            duplicate_pairs.append((i, j))
+print(f"Found {len(duplicate_pairs)} potential duplicate pairs in PCA space.")
+if duplicate_pairs:
+    print("Duplicate pair indices and record IDs:")
+    # Load original data to get record IDs
+    import json
+
+    with open("fixed_json/incremental_fixed_03032026.json", "r") as f:
+        original_data = json.load(f)
+    for i, j in duplicate_pairs:
+        id_i = original_data[i].get("id", f"index_{i}")
+        id_j = original_data[j].get("id", f"index_{j}")
+        print(f"Pair: ({i}, {j}) -> IDs: {id_i}, {id_j}")
 
 threshold = 0.95
 n_components_95 = np.argmax(cumulative_variance >= threshold) + 1
