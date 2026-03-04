@@ -1,48 +1,54 @@
 from json_embedding_parser import JSONEmbeddingParser
+import json
+import glob
+import pandas as pd
 import numpy as np
 
 
 def main():
+
     parser = JSONEmbeddingParser()
-    data = parser.parse_and_embed("fixed_json/incremental_fixed_03032026.json")
-    parser.save_embedded_json(
-        data, "data_with_embeddings/incremental_03032026_embeddings.json"
+    # Process embeddings in batches and save results
+    all_embedded = parser.parse_and_embed(
+        "fixed_json/large_data.json", batch_size=10000
     )
-    embeddings_matrix = parser.get_embeddings_matrix(data)
-    print("Embeddings matrix shape:", embeddings_matrix.shape)
-    print(embeddings_matrix)
-    print("Text Embeddings added and saved.")
 
-    similarities = parser.model.similarity(embeddings_matrix, embeddings_matrix)
-    # print(similarities)
+    # For each batch matrix CSV, calculate similarities and find duplicates
+    batch_matrix_files = sorted(
+        glob.glob("similarities_matrix/embeddings_batch_*_matrix.csv")
+    )
+    for batch_idx, batch_matrix_file in enumerate(batch_matrix_files):
+        print(f"Processing batch matrix: {batch_matrix_file}")
+        embeddings_matrix = pd.read_csv(batch_matrix_file).values
+        print("Embeddings matrix shape:", embeddings_matrix.shape)
+        # Calculate similarities
+        from sentence_transformers import SentenceTransformer
 
-    # Save similarities matrix with named columns and rows
-    import pandas as pd
+        model = parser.model
+        similarities = model.similarity(embeddings_matrix, embeddings_matrix)
+        n = similarities.shape[0]
+        col_names = [f"embd_{i + 1}" for i in range(n)]
+        row_names = [f"doc_{i + 1}" for i in range(n)]
+        sim_csv_path = (
+            f"similarities_matrix/similarities_batch_{batch_idx + 1}_matrix.csv"
+        )
+        df = pd.DataFrame(similarities, columns=col_names, index=row_names)
+        df.to_csv(sim_csv_path)
+        print(f"Saved similarities matrix: {sim_csv_path}")
 
-    n = similarities.shape[0]
-    col_names = [f"embd_{i + 1}" for i in range(n)]
-    row_names = [f"doc_{i + 1}" for i in range(n)]
-    df = pd.DataFrame(similarities, columns=col_names, index=row_names)
-    df.to_csv("similarities_matrix/similarities_incremental_03032026_matrix.csv")
-
-    duplicates = parser.find_duplicates(similarities, threshold=0.95)
-    print(f"Number of duplicate pairs found: {len(duplicates)}")
-
-    for i, j in duplicates:
-        id_i = data[i].get("id", f"index_{i}")
-        id_j = data[j].get("id", f"index_{j}")
-        print(f"Duplicate pair: {id_i} and {id_j}")
-
-    # # Create a duplicates matrix (1 for duplicate, 0 otherwise)
-    # duplicates_matrix = np.zeros_like(similarities)
-    # for i, j in duplicates:
-    #     duplicates_matrix[i, j] = 1
-    #     duplicates_matrix[j, i] = 1  # symmetric
-
-    # # Save duplicates matrix as CSV
-    # df_dup = pd.DataFrame(duplicates_matrix, columns=col_names, index=row_names)
-    # df_dup.to_csv("similarities_matrix/duplicates_matrix.csv")
-    # print("Duplicates matrix saved to similarities_matrix/duplicates_matrix.csv")
+        # Find duplicates
+        duplicates = parser.find_duplicates(similarities, threshold=0.95)
+        print(
+            f"Number of duplicate pairs found in batch {batch_idx + 1}: {len(duplicates)}"
+        )
+        # Optionally print duplicate pairs
+        batch_json_path = f"data_with_embeddings/embeddings_batch_{batch_idx + 1}.json"
+        with open(batch_json_path, "r") as f:
+            batch_data = json.load(f)
+        for i, j in duplicates:
+            id_i = batch_data[i].get("id", f"index_{i}")
+            id_j = batch_data[j].get("id", f"index_{j}")
+            print(f"Duplicate pair: {id_i} and {id_j}")
 
 
 if __name__ == "__main__":

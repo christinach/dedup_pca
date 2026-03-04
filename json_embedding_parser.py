@@ -33,33 +33,60 @@ class JSONEmbeddingParser:
     def __init__(self, model_name="all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
 
-    def parse_and_embed(self, json_path):
+    def parse_and_embed(self, json_path, batch_size=10000):
         with open(json_path, "r") as f:
             data = json.load(f)
 
-        for entry in data:
-            fields = [
-                entry.get("isbn_display", ""),
-                entry.get("oclc_s", []),
-                entry.get("title_display", ""),
-                entry.get("call_number_display", ""),
-                entry.get("publication_display", ""),
-                entry.get("edition_display", ""),
-                # entry.get("lcgft_s", ""),
-                # entry.get("rbgenr_s", ""),
-                entry.get("uniform_title_s", ""),
-                entry.get("series_statement_index", ""),
-                entry.get("context_title_index", ""),
-            ]
-            text = " ".join(
-                [
-                    field if isinstance(field, str) else " ".join(field)
-                    for field in fields
+        import os
+
+        batches = [data[i : i + batch_size] for i in range(0, len(data), batch_size)]
+        all_embedded = []
+        for batch_idx, batch in enumerate(batches):
+            print(f"Processing batch {batch_idx + 1}/{len(batches)}...")
+            for entry in batch:
+                fields = [
+                    entry.get("isbn_display", ""),
+                    entry.get("oclc_s", []),
+                    entry.get("title_display", ""),
+                    entry.get("call_number_display", ""),
+                    entry.get("publication_display", ""),
+                    entry.get("edition_display", ""),
+                    entry.get("uniform_title_s", ""),
+                    entry.get("series_statement_index", ""),
+                    entry.get("context_title_index", ""),
                 ]
+                text = " ".join(
+                    [
+                        field if isinstance(field, str) else " ".join(field)
+                        for field in fields
+                    ]
+                )
+                embedding = self.model.encode(text)
+                entry["text_embedding"] = embedding.tolist()
+
+            # Save batch as JSON in data_with_embeddings
+            os.makedirs("data_with_embeddings", exist_ok=True)
+            batch_json_path = (
+                f"data_with_embeddings/embeddings_batch_{batch_idx + 1}.json"
             )
-            embedding = self.model.encode(text)
-            entry["text_embedding"] = embedding.tolist()
-        return data
+            with open(batch_json_path, "w") as f:
+                json.dump(batch, f, indent=2)
+            print(f"Saved batch JSON: {batch_json_path}")
+
+            # Save batch embeddings as CSV matrix in similarities_matrix
+            os.makedirs("similarities_matrix", exist_ok=True)
+            embeddings = [entry["text_embedding"] for entry in batch]
+            import pandas as pd
+
+            df = pd.DataFrame(embeddings)
+            batch_csv_path = (
+                f"similarities_matrix/embeddings_batch_{batch_idx + 1}_matrix.csv"
+            )
+            df.to_csv(batch_csv_path, index=False)
+            print(f"Saved batch matrix CSV: {batch_csv_path}")
+
+            all_embedded.extend(batch)
+        return all_embedded
 
     def save_embedded_json(self, data, output_path):
         with open(output_path, "w") as f:

@@ -13,3 +13,4 @@ similarities_matrix/
 pca_results/
 fixed_json/
 raw_data/
+.DS_Store
