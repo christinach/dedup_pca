@@ -5,6 +5,7 @@ from sklearn.decomposition import PCA, IncrementalPCA
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import pandas as pd
 
 # # 1. Load a pretrained Sentence Transformer model
 # model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -76,7 +77,7 @@ class JSONEmbeddingParser:
             # Save batch embeddings as CSV matrix in similarities_matrix
             os.makedirs("similarities_matrix", exist_ok=True)
             embeddings = [entry["text_embedding"] for entry in batch]
-            import pandas as pd
+     
 
             df = pd.DataFrame(embeddings)
             batch_csv_path = (

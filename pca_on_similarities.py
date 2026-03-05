@@ -46,7 +46,7 @@ def timestamp():
 
 batch_size = 10000
 n_components = 44  # Set as needed
-batch_files = sorted(glob.glob("similarities_matrix/embeddings_batch_*_matrix.csv"))
+batch_files = sorted(glob.glob("similarities_matrix/similarities_batch_*_marcxml_matrix.csv"))
 ipca = IncrementalPCA(n_components=n_components, batch_size=batch_size)
 
 for batch_file in batch_files:
@@ -83,7 +83,7 @@ print(
 # Find duplicates in IPCA space
 # Max distance in IPCA space: 1.3711704915933614
 # Min distance in IPCA space (excluding zero): 0.013151091754532652
-threshold_ipca = 0.017  # Adjust this value
+threshold_ipca = 0.05  # Adjust this value
 print("threshold_ipca:", threshold_ipca)
 duplicate_ipca_pairs = []
 for i in range(distances_ipca.shape[0]):
@@ -93,7 +93,8 @@ for i in range(distances_ipca.shape[0]):
 print(f"Found {len(duplicate_ipca_pairs)} potential duplicate pairs in IPCA space.")
 if duplicate_ipca_pairs:
     print("Duplicate pair indices and record IDs (IPCA):")
-    with open("fixed_json/large_data.json", "r") as f:
+    # with open("fixed_json/large_data.json", "r") as f:
+    with open("data_with_embeddings/marcxml_embeddings_1_batch_1.json", "r") as f:
         original_data = json.load(f)
     for i, j in duplicate_ipca_pairs:
         id_i = original_data[i].get("id", f"index_{i}")
