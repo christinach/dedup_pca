@@ -319,7 +319,6 @@ class MARCXMLEmbeddingParser:
             with tarfile.open(tar_gz_path, "r:gz") as tar:
                 tar.extractall(path=extract_dir)
             print(f"Extracted {tar_gz_path} to {extract_dir}")
-            # Rename files to add .xml extension if missing
             for f in os.listdir(extract_dir):
                 file_path = os.path.join(extract_dir, f)
                 if not f.endswith(".xml"):
@@ -404,7 +403,7 @@ class MARCXMLEmbeddingParser:
         """
         Loads all marcxml_embeddings_*_batch_1.json files from data_with_embeddings/,
         creates a matrix of embeddings (IDs as rows, embedding dims as columns),
-        and saves the result as similarities_matrix/similarities_batch_1_marcxml_matrix.csv.
+        and saves the result as embeddings_matrix/embeddings_batch_1_marcxml_matrix.csv.
         """
         embedding_files = sorted(glob.glob("data_with_embeddings/marcxml_embeddings_*_batch_1.json"))
         all_ids = []
@@ -418,16 +417,21 @@ class MARCXMLEmbeddingParser:
         if not all_embeddings:
             print("No embeddings found in batch 1 files.")
             return None
-        df = pd.DataFrame(all_embeddings, index=False, header=False)
-        os.makedirs("similarities_matrix", exist_ok=True)
-        output_path = "similarities_matrix/similarities_batch_1_marcxml_matrix.csv"
-        # Save only the values, no row index and no column headers
-        np.savetxt(output_path, df.values, delimiter=",")
-        print(f"Saved embedding matrix (no IDs, no headers): {output_path}")
+
+        if all_embeddings:
+            num_dims = len(all_embeddings[0])
+            columns = [f"dim_{i+1}" for i in range(num_dims)]
+        else:
+            columns = []
+        df = pd.DataFrame(all_embeddings, columns=columns)
+        os.makedirs("embeddings_matrix", exist_ok=True)
+        output_path = "embeddings_matrix/embeddings_batch_1_marcxml_matrix.csv"
+        df.to_csv(output_path, header=True, index=False)
+        print(f"Saved embedding matrix (with column names, no IDs): {output_path}")
         return df
 
 if __name__ == "__main__":
     parser = MARCXMLEmbeddingParser()
     marcxml_dir = "data_marcxml"
-    parser.extract_and_parse_marcxml(marcxml_dir)
-    # parser.create_all_batch_1_embedding_matrix()
+    # parser.extract_and_parse_marcxml(marcxml_dir)
+    parser.create_all_batch_1_embedding_matrix()
