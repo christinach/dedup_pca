@@ -94,6 +94,12 @@ class MARCXMLEmbeddingParser:
         except KeyError:
             return ""
 
+    def context_title_index(self):
+        try:
+            return self.record["505"].get("t")
+        except KeyError:
+            return ""
+        
     def edition(self):
         try:
             return self.__normalize_edition(self.record["250"].get("a"))
@@ -347,54 +353,49 @@ class MARCXMLEmbeddingParser:
                     self.record = record
                     print(f"Processing record: {record}")
                     record_id = self.id()
+                    # Join field values and calculate one text embedding
                     title = self.title()
                     transliterated_title = self.transliterated_title()
                     publication_year = self.publication_year()
                     pagination = self.pagination()
                     edition = self.edition()
+                    context_title_index = self.context_title_index()
                     publisher_name = self.publisher_name()
                     type_of = self.type_of()
                     title_part = self.title_part()
                     title_number = self.title_number()
                     author = self.author()
                     title_inclusive_dates = self.title_inclusive_dates()
-                    # gov_doc_number = self.gov_doc_number()
-                    # is_electronic_resource = self.is_electronic_resource()
                     text = " ".join([
-                        str(record_id),
                         str(title),
                         str(transliterated_title),
                         str(publication_year),
                         str(pagination),
                         str(edition),
+                        str(context_title_index),
                         str(publisher_name),
                         str(type_of),
                         str(title_part),
                         str(title_number),
                         str(author),
                         str(title_inclusive_dates),
-                        # str(gov_doc_number),
-                        # str(is_electronic_resource)
                     ])
-                    print(f"Concatenated text for embedding: {text}")
                     embedding = self.model.encode(text)
                     records.append({
                         "id": record_id,
                         "text_embedding": embedding.tolist()
                     })
-            batch_size = batch_size if batch_size else 10000
-            batches = [
-                records[i : i + batch_size] for i in range(0, len(records), batch_size)
-            ]
-            for batch_idx, batch in enumerate(batches):
-                print(
-                    f"Processing batch {batch_idx + 1}/{len(batches)} with {len(batch)} records."
-                )
-                os.makedirs("data_with_embeddings", exist_ok=True)
-                batch_json_path = f"data_with_embeddings/marcxml_embeddings_{tar_idx + 1}_batch_{batch_idx + 1}.json"
-                with open(batch_json_path, "w") as f:
-                    json.dump(batch, f, indent=2)
-                print(f"Saved batch embedding JSON: {batch_json_path}")
+                # Batching logic: split records into batches of batch_size
+                batches = [records[i:i+batch_size] for i in range(0, len(records), batch_size)]
+                for batch_idx, batch in enumerate(batches):
+                    print(
+                        f"Processing batch {batch_idx + 1} with {len(batch)} records from {marc_file}..."
+                    )
+                    os.makedirs("data_with_embeddings", exist_ok=True)
+                    batch_json_path = f"data_with_embeddings/marcxml_embeddings_{tar_idx + 1}_batch_{batch_idx + 1}.json"
+                    with open(batch_json_path, "w") as f:
+                        json.dump(batch, f, indent=2)
+                    print(f"Saved batch embedding JSON: {batch_json_path}")
 
     def __init__(self, model_name="all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
