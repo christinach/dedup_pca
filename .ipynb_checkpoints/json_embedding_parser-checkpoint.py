@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import pandas as pd
-import os
 
 # # 1. Load a pretrained Sentence Transformer model
 # model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -39,6 +38,7 @@ class JSONEmbeddingParser:
         with open(json_path, "r") as f:
             data = json.load(f)
 
+        import os
 
         batches = [data[i : i + batch_size] for i in range(0, len(data), batch_size)]
         all_embedded = []
@@ -46,16 +46,15 @@ class JSONEmbeddingParser:
             print(f"Processing batch {batch_idx + 1}/{len(batches)}...")
             for entry in batch:
                 fields = [
-                    entry.get("title_display", ""),
-                    entry.get("uniform_title_s", ""),
-                    entry.get("author_s",""),
-                    entry.get("edition_display", ""),
-                    entry.get("publication_display", ""),
                     entry.get("isbn_display", ""),
                     entry.get("oclc_s", []),
-                    # entry.get("call_number_display", ""),
-                    # entry.get("series_statement_index", ""),
-                    # entry.get("context_title_index", "")
+                    entry.get("title_display", ""),
+                    entry.get("call_number_display", ""),
+                    entry.get("publication_display", ""),
+                    entry.get("edition_display", ""),
+                    entry.get("uniform_title_s", ""),
+                    entry.get("series_statement_index", ""),
+                    entry.get("context_title_index", ""),
                 ]
                 text = " ".join(
                     [
@@ -75,14 +74,14 @@ class JSONEmbeddingParser:
                 json.dump(batch, f, indent=2)
             print(f"Saved batch JSON: {batch_json_path}")
 
-            # Save batch embeddings as CSV matrix in embeddings_matrix
-            os.makedirs("embeddings_matrix", exist_ok=True)
+            # Save batch embeddings as CSV matrix in similarities_matrix
+            os.makedirs("similarities_matrix", exist_ok=True)
             embeddings = [entry["text_embedding"] for entry in batch]
      
 
             df = pd.DataFrame(embeddings)
             batch_csv_path = (
-                f"embeddings_matrix/embeddings_batch_{batch_idx + 1}_matrix.csv"
+                f"similarities_matrix/embeddings_batch_{batch_idx + 1}_matrix.csv"
             )
             df.to_csv(batch_csv_path, index=False)
             print(f"Saved batch matrix CSV: {batch_csv_path}")
