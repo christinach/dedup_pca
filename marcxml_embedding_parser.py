@@ -9,11 +9,12 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 class MARCXMLEmbeddingParser:
     def id(self):
         try:
             return self.record.get("001").data
-        except (KeyError, AttributeError):
+        except KeyError, AttributeError:
             return ""
 
     def title(self):
@@ -28,7 +29,7 @@ class MARCXMLEmbeddingParser:
             title = " ".join([subfield_a, subfield_b, subfield_p])
             title = self.__strip_ending_punctuation(title)
             return title
-        except (KeyError, AttributeError):
+        except KeyError, AttributeError:
             return ""
 
     def transliterated_title(self):
@@ -40,7 +41,7 @@ class MARCXMLEmbeddingParser:
             title = " ".join([subfield_a, subfield_b, subfield_p])
             title = self.__strip_ending_punctuation(title)
             return title
-        except (KeyError, AttributeError):
+        except KeyError, AttributeError:
             return ""
 
     def __title_from_245(self):
@@ -51,7 +52,7 @@ class MARCXMLEmbeddingParser:
             if title is None:
                 return ""
             return title
-        except (KeyError, TypeError, AttributeError):
+        except KeyError, TypeError, AttributeError:
             return ""
 
     def __vernacular_title_field(self):
@@ -63,7 +64,12 @@ class MARCXMLEmbeddingParser:
             if linked_fields and len(linked_fields) > 0:
                 return linked_fields[0]
             return ""
-        except (KeyError, IndexError, AttributeError, pymarc.exceptions.MissingLinkedFields):
+        except (
+            KeyError,
+            IndexError,
+            AttributeError,
+            pymarc.exceptions.MissingLinkedFields,
+        ):
             return ""
 
     def publication_year(self):
@@ -99,7 +105,7 @@ class MARCXMLEmbeddingParser:
             return self.record["505"].get("t")
         except KeyError:
             return ""
-        
+
     def edition(self):
         try:
             return self.__normalize_edition(self.record["250"].get("a"))
@@ -163,13 +169,13 @@ class MARCXMLEmbeddingParser:
     def __vernacular_author_field(self):
         try:
             return self.record.get_linked_fields(self.record["100"])[0]
-        except (KeyError, IndexError, pymarc.exceptions.MissingLinkedFields):
+        except KeyError, IndexError, pymarc.exceptions.MissingLinkedFields:
             try:
                 return self.record.get_linked_fields(self.record["110"])[0]
-            except (KeyError, IndexError, pymarc.exceptions.MissingLinkedFields):
+            except KeyError, IndexError, pymarc.exceptions.MissingLinkedFields:
                 try:
                     return self.record.get_linked_fields(self.record["111"])[0]
-                except (KeyError, IndexError, pymarc.exceptions.MissingLinkedFields):
+                except KeyError, IndexError, pymarc.exceptions.MissingLinkedFields:
                     return ""
 
     def title_inclusive_dates(self):
@@ -264,7 +270,7 @@ class MARCXMLEmbeddingParser:
             valid = False
         try:
             int(date_string)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             valid = False
         return valid
 
@@ -308,8 +314,7 @@ class MARCXMLEmbeddingParser:
         if self.is_valid_date(date_string):
             return int(date_string)
         return ""
-    
-    
+
     marcxml_dir = "data_marcxml"
 
     def extract_and_parse_marcxml(self, marcxml_dir, batch_size=10000):
@@ -337,11 +342,13 @@ class MARCXMLEmbeddingParser:
             ]
             print(f"Found {len(marc_files)} MARC files.")
             records = []
-            records = parse_xml_to_array('data_marcxml/extracted/incremental_46370036360006421_20260305_020345[024]_new.xml')
+            records = parse_xml_to_array(
+                "data_marcxml/extracted/incremental_46370036360006421_20260305_020345[024]_new.xml"
+            )
             print(f"Number of records: {len(records)}")
             print(type(records[0]) if records else "No records")
             records = []
-          
+
             for marc_file in marc_files:
                 marc_records = parse_xml_to_array(marc_file)
                 print(f"Parsed {len(marc_records)} records from {marc_file}")
@@ -366,28 +373,32 @@ class MARCXMLEmbeddingParser:
                     title_number = self.title_number()
                     author = self.author()
                     title_inclusive_dates = self.title_inclusive_dates()
-                    text = " ".join([
-                        str(title),
-                        str(title_part),
-                        str(title_number),
-                        str(title_inclusive_dates),
-                        str(transliterated_title),
-                        str(author),
-                        str(publication_year),
-                        str(pagination),
-                        str(edition),
-                        str(context_title_index),
-                        str(publisher_name),
-                        str(type_of),
-                    ])
+                    text = " ".join(
+                        [
+                            str(title),
+                            str(title_part),
+                            str(title_number),
+                            str(title_inclusive_dates),
+                            str(transliterated_title),
+                            str(author),
+                            str(publication_year),
+                            str(pagination),
+                            str(edition),
+                            str(context_title_index),
+                            str(publisher_name),
+                            str(type_of),
+                        ]
+                    )
                     print(f"Combined text for embedding: {text}")
                     embedding = self.model.encode(text)
-                    records.append({
-                        "id": record_id,
-                        "text_embedding": embedding.tolist()
-                    })
+                    records.append(
+                        {"id": record_id, "text_embedding": embedding.tolist()}
+                    )
                 # Batching logic: split records into batches of batch_size
-                batches = [records[i:i+batch_size] for i in range(0, len(records), batch_size)]
+                batches = [
+                    records[i : i + batch_size]
+                    for i in range(0, len(records), batch_size)
+                ]
                 for batch_idx, batch in enumerate(batches):
                     print(
                         f"Processing batch {batch_idx + 1} with {len(batch)} records from {marc_file}..."
@@ -407,7 +418,9 @@ class MARCXMLEmbeddingParser:
         creates a matrix of embeddings (IDs as rows, embedding dims as columns),
         and saves the result as embeddings_matrix/embeddings_batch_1_marcxml_matrix.csv.
         """
-        embedding_files = sorted(glob.glob("data_with_embeddings/marcxml_embeddings_*_batch_1.json"))
+        embedding_files = sorted(
+            glob.glob("data_with_embeddings/marcxml_embeddings_*_batch_1.json")
+        )
         all_ids = []
         all_embeddings = []
         for file in embedding_files:
@@ -422,7 +435,7 @@ class MARCXMLEmbeddingParser:
 
         if all_embeddings:
             num_dims = len(all_embeddings[0])
-            columns = [f"dim_{i+1}" for i in range(num_dims)]
+            columns = [f"dim_{i + 1}" for i in range(num_dims)]
         else:
             columns = []
         df = pd.DataFrame(all_embeddings, columns=columns)
@@ -431,6 +444,7 @@ class MARCXMLEmbeddingParser:
         df.to_csv(output_path, header=True, index=False)
         print(f"Saved embedding matrix (with column names, no IDs): {output_path}")
         return df
+
 
 if __name__ == "__main__":
     parser = MARCXMLEmbeddingParser()

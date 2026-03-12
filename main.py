@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 
+
 def main():
 
     parser = JSONEmbeddingParser()
@@ -21,7 +22,7 @@ def main():
         print(f"Processing batch matrix: {batch_matrix_file}")
         embeddings_matrix = pd.read_csv(batch_matrix_file).values
         print("Embeddings matrix shape:", embeddings_matrix.shape)
-        
+
         # # Calculate similarities
         # model = parser.model
         # similarities = model.similarity(embeddings_matrix, embeddings_matrix)

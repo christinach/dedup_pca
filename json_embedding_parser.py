@@ -39,7 +39,6 @@ class JSONEmbeddingParser:
         with open(json_path, "r") as f:
             data = json.load(f)
 
-
         batches = [data[i : i + batch_size] for i in range(0, len(data), batch_size)]
         all_embedded = []
         for batch_idx, batch in enumerate(batches):
@@ -48,7 +47,7 @@ class JSONEmbeddingParser:
                 fields = [
                     entry.get("title_display", ""),
                     entry.get("uniform_title_s", ""),
-                    entry.get("author_s",""),
+                    entry.get("author_s", ""),
                     entry.get("edition_display", ""),
                     entry.get("publication_display", ""),
                     entry.get("isbn_display", ""),
@@ -78,7 +77,6 @@ class JSONEmbeddingParser:
             # Save batch embeddings as CSV matrix in embeddings_matrix
             os.makedirs("embeddings_matrix", exist_ok=True)
             embeddings = [entry["text_embedding"] for entry in batch]
-     
 
             df = pd.DataFrame(embeddings)
             batch_csv_path = (

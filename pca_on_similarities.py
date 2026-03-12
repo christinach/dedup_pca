@@ -46,7 +46,9 @@ def timestamp():
 
 batch_size = 10000
 n_components = 44  # Set as needed
-batch_files = sorted(glob.glob("similarities_matrix/similarities_batch_*_marcxml_matrix.csv"))
+batch_files = sorted(
+    glob.glob("similarities_matrix/similarities_batch_*_marcxml_matrix.csv")
+)
 ipca = IncrementalPCA(n_components=n_components, batch_size=batch_size)
 
 for batch_file in batch_files:
