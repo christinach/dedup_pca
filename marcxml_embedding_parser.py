@@ -368,18 +368,19 @@ class MARCXMLEmbeddingParser:
                     title_inclusive_dates = self.title_inclusive_dates()
                     text = " ".join([
                         str(title),
+                        str(title_part),
+                        str(title_number),
+                        str(title_inclusive_dates),
                         str(transliterated_title),
+                        str(author),
                         str(publication_year),
                         str(pagination),
                         str(edition),
                         str(context_title_index),
                         str(publisher_name),
                         str(type_of),
-                        str(title_part),
-                        str(title_number),
-                        str(author),
-                        str(title_inclusive_dates),
                     ])
+                    print(f"Combined text for embedding: {text}")
                     embedding = self.model.encode(text)
                     records.append({
                         "id": record_id,

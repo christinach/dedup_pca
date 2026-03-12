@@ -96,7 +96,7 @@ print(
 # Max distance in IPCA space: 1.3711704915933614
 # Min distance in IPCA space (excluding zero): 0.013151091754532652
 
-threshold_ipca = 4.5  # Adjust this value
+threshold_ipca = 4.36  # Adjust this value
 
 print("threshold_ipca:", threshold_ipca)
 duplicate_ipca_pairs = []
