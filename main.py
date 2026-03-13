@@ -11,7 +11,7 @@ def main():
     parser = JSONEmbeddingParser()
     # Process embeddings in batches and save results
     all_embedded = parser.parse_and_embed(
-        "fixed_json/incremental_fixed_pul.json", batch_size=10000
+        "fixed_json/large_data.json", batch_size=10000
     )
 
     # For each batch matrix CSV, calculate similarities and find duplicates

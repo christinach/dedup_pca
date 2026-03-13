@@ -11,6 +11,90 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 
 class MARCXMLEmbeddingParser:
+    def parse_scsb_update_files(self, input_dir="data_marcxml", batch_size=10000):
+
+        gz_files = sorted(glob.glob(os.path.join(input_dir, "scsb_update_*.xml.gz")))
+        print(f"Found {len(gz_files)} scsb_update_*.xml.gz files in {input_dir}")
+        os.makedirs(os.path.join(input_dir, "extracted"), exist_ok=True)
+        import gzip
+
+        for file_idx, gz_path in enumerate(gz_files):
+            print(f"Processing {gz_path}")
+
+            xml_filename = os.path.basename(gz_path).replace(".xml.gz", ".xml")
+            extracted_xml_path = os.path.join(input_dir, "extracted", xml_filename)
+            with gzip.open(gz_path, "rb") as gz_file:
+                with open(extracted_xml_path, "wb") as xml_out:
+                    xml_out.write(gz_file.read())
+
+            xml_files = sorted(
+                [
+                    os.path.join(input_dir, "extracted", f)
+                    for f in os.listdir(os.path.join(input_dir, "extracted"))
+                    if f.endswith(".xml")
+                ]
+            )
+            for xml_file_idx, xml_file in enumerate(xml_files):
+                print(f"Parsing {xml_file}")
+                marc_records = parse_xml_to_array(xml_file)
+                print(f"Parsed {len(marc_records)} records from {xml_file}")
+                records = []
+                for idx, record in enumerate(marc_records):
+                    print(f"Record {idx}: type={type(record)}, content={record}")
+                    if record is None:
+                        print(f"Record {idx} is None, skipping.")
+                        continue
+                    self.record = record
+                    print(f"Processing record: {record}")
+                    record_id = self.id()
+                    title = self.title()
+                    transliterated_title = self.transliterated_title()
+                    publication_year = self.publication_year()
+                    pagination = self.pagination()
+                    edition = self.edition()
+                    context_title_index = self.context_title_index()
+                    publisher_name = self.publisher_name()
+                    type_of = self.type_of()
+                    title_part = self.title_part()
+                    title_number = self.title_number()
+                    author = self.author()
+                    title_inclusive_dates = self.title_inclusive_dates()
+                    text = " ".join(
+                        [
+                            str(title),
+                            str(title_part),
+                            str(title_number),
+                            str(title_inclusive_dates),
+                            str(transliterated_title),
+                            str(author),
+                            str(publication_year),
+                            str(pagination),
+                            str(edition),
+                            str(context_title_index),
+                            str(publisher_name),
+                            str(type_of),
+                        ]
+                    )
+                    print(f"Combined text for embedding: {text}")
+                    embedding = self.model.encode(text)
+                    records.append(
+                        {"id": record_id, "text_embedding": embedding.tolist()}
+                    )
+
+                batches = [
+                    records[i : i + batch_size]
+                    for i in range(0, len(records), batch_size)
+                ]
+                for batch_idx, batch in enumerate(batches):
+                    print(
+                        f"Processing batch {batch_idx + 1} with {len(batch)} records from {xml_file}..."
+                    )
+                    os.makedirs("data_with_embeddings", exist_ok=True)
+                    batch_json_path = f"data_with_embeddings/scsb_update_{file_idx + 1}_batch_{batch_idx + 1}.json"
+                    with open(batch_json_path, "w") as f:
+                        json.dump(batch, f, indent=2)
+                    print(f"Saved batch embedding JSON: {batch_json_path}")
+
     def id(self):
         try:
             return self.record.get("001").data
@@ -416,34 +500,32 @@ class MARCXMLEmbeddingParser:
         """
         Loads all marcxml_embeddings_*_batch_1.json files from data_with_embeddings/,
         creates a matrix of embeddings (IDs as rows, embedding dims as columns),
-        and saves the result as embeddings_matrix/embeddings_batch_1_marcxml_matrix.csv.
+        and saves the result as embeddings_matrix/scsb_update_*_matrix.csv.
         """
         embedding_files = sorted(
-            glob.glob("data_with_embeddings/marcxml_embeddings_*_batch_1.json")
+            glob.glob("data_with_embeddings/scsb_update_*_batch_*.json")
         )
-        all_ids = []
-        all_embeddings = []
-        for file in embedding_files:
+        os.makedirs("embeddings_matrix", exist_ok=True)
+        for batch_idx, file in enumerate(embedding_files):
+            all_ids = []
+            all_embeddings = []
             with open(file, "r") as f:
                 data = json.load(f)
             for item in data:
                 all_ids.append(item["id"])
                 all_embeddings.append(item["text_embedding"])
-        if not all_embeddings:
-            print("No embeddings found in batch 1 files.")
-            return None
-
-        if all_embeddings:
+            if not all_embeddings:
+                print(f"No embeddings found in {file}.")
+                continue
             num_dims = len(all_embeddings[0])
             columns = [f"dim_{i + 1}" for i in range(num_dims)]
-        else:
-            columns = []
-        df = pd.DataFrame(all_embeddings, columns=columns)
-        os.makedirs("embeddings_matrix", exist_ok=True)
-        output_path = "embeddings_matrix/embeddings_batch_1_marcxml_matrix.csv"
-        df.to_csv(output_path, header=True, index=False)
-        print(f"Saved embedding matrix (with column names, no IDs): {output_path}")
-        return df
+            df = pd.DataFrame(all_embeddings, columns=columns)
+            output_path = (
+                f"embeddings_matrix/scsb_update_batch_{batch_idx + 1}_matrix.csv"
+            )
+            df.to_csv(output_path, header=True, index=False)
+            print(f"Saved embedding matrix (with column names, no IDs): {output_path}")
+        return None
 
 
 if __name__ == "__main__":
@@ -451,3 +533,4 @@ if __name__ == "__main__":
     marcxml_dir = "data_marcxml"
     # parser.extract_and_parse_marcxml(marcxml_dir)
     parser.create_all_batch_1_embedding_matrix()
+    # parser.parse_scsb_update_files(input_dir=marcxml_dir, batch_size=10000)
