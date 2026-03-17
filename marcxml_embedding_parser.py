@@ -7,93 +7,103 @@ import string
 from sentence_transformers import SentenceTransformer
 import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.metrics.pairwise import cosine_similarity
 
 
 class MARCXMLEmbeddingParser:
+    def __init__(self, model_name="all-MiniLM-L6-v2"):
+        self.model = SentenceTransformer(model_name)
+    
     def parse_scsb_update_files(self, input_dir="data_marcxml", batch_size=10000):
+        gz_files = self._find_gz_files(input_dir)
+        self._extract_gz_files(gz_files, input_dir)
+        xml_files = self._find_xml_files(input_dir)
+        for file_idx, xml_file in enumerate(xml_files):
+            # print(f"Parsing {xml_file}")
+            marc_records = parse_xml_to_array(xml_file)
+            # print(f"Parsed {len(marc_records)} records from {xml_file}")
+            records = self._process_records(marc_records)
+            self._save_batches(records, file_idx, xml_file, batch_size)
 
+    def _find_gz_files(self, input_dir):
         gz_files = sorted(glob.glob(os.path.join(input_dir, "scsb_update_*.xml.gz")))
         print(f"Found {len(gz_files)} scsb_update_*.xml.gz files in {input_dir}")
+        return gz_files
+
+    def _extract_gz_files(self, gz_files, input_dir):
         os.makedirs(os.path.join(input_dir, "extracted"), exist_ok=True)
         import gzip
-
-        for file_idx, gz_path in enumerate(gz_files):
+        for gz_path in gz_files:
             print(f"Processing {gz_path}")
-
             xml_filename = os.path.basename(gz_path).replace(".xml.gz", ".xml")
             extracted_xml_path = os.path.join(input_dir, "extracted", xml_filename)
             with gzip.open(gz_path, "rb") as gz_file:
                 with open(extracted_xml_path, "wb") as xml_out:
                     xml_out.write(gz_file.read())
 
-            xml_files = sorted(
+    def _find_xml_files(self, input_dir):
+        xml_dir = os.path.join(input_dir, "extracted")
+        xml_files = sorted(
+            [
+                os.path.join(xml_dir, f)
+                for f in os.listdir(xml_dir)
+                if f.endswith(".xml")
+            ]
+        )
+        return xml_files
+
+    def _process_records(self, marc_records):
+        records = []
+        for idx, record in enumerate(marc_records):
+            # print(f"Record {idx}: type={type(record)}, content={record}")
+            if record is None:
+                # print(f"Record {idx} is None, skipping.")
+                continue
+            self.record = record
+            # print(f"Processing record: {record}")
+            record_id = self.id()
+            title = self.title()
+            transliterated_title = self.transliterated_title()
+            publication_year = self.publication_year()
+            pagination = self.pagination()
+            edition = self.edition()
+            context_title_index = self.context_title_index()
+            publisher_name = self.publisher_name()
+            type_of = self.type_of()
+            title_part = self.title_part()
+            title_number = self.title_number()
+            author = self.author()
+            title_inclusive_dates = self.title_inclusive_dates()
+            text = " ".join(
                 [
-                    os.path.join(input_dir, "extracted", f)
-                    for f in os.listdir(os.path.join(input_dir, "extracted"))
-                    if f.endswith(".xml")
+                    str(title),
+                    str(title_part),
+                    str(title_number),
+                    str(title_inclusive_dates),
+                    str(transliterated_title),
+                    str(author),
+                    str(publication_year),
+                    str(pagination),
+                    str(edition),
+                    str(context_title_index),
+                    str(publisher_name),
+                    str(type_of),
                 ]
             )
-            for xml_file_idx, xml_file in enumerate(xml_files):
-                print(f"Parsing {xml_file}")
-                marc_records = parse_xml_to_array(xml_file)
-                print(f"Parsed {len(marc_records)} records from {xml_file}")
-                records = []
-                for idx, record in enumerate(marc_records):
-                    print(f"Record {idx}: type={type(record)}, content={record}")
-                    if record is None:
-                        print(f"Record {idx} is None, skipping.")
-                        continue
-                    self.record = record
-                    print(f"Processing record: {record}")
-                    record_id = self.id()
-                    title = self.title()
-                    transliterated_title = self.transliterated_title()
-                    publication_year = self.publication_year()
-                    pagination = self.pagination()
-                    edition = self.edition()
-                    context_title_index = self.context_title_index()
-                    publisher_name = self.publisher_name()
-                    type_of = self.type_of()
-                    title_part = self.title_part()
-                    title_number = self.title_number()
-                    author = self.author()
-                    title_inclusive_dates = self.title_inclusive_dates()
-                    text = " ".join(
-                        [
-                            str(title),
-                            str(title_part),
-                            str(title_number),
-                            str(title_inclusive_dates),
-                            str(transliterated_title),
-                            str(author),
-                            str(publication_year),
-                            str(pagination),
-                            str(edition),
-                            str(context_title_index),
-                            str(publisher_name),
-                            str(type_of),
-                        ]
-                    )
-                    print(f"Combined text for embedding: {text}")
-                    embedding = self.model.encode(text)
-                    records.append(
-                        {"id": record_id, "text_embedding": embedding.tolist()}
-                    )
+            print(f"Combined text for embedding: {text}")
+            embedding = self.model.encode(text)
+            records.append({"id": record_id, "text_embedding": embedding.tolist()})
+        return records
 
-                batches = [
-                    records[i : i + batch_size]
-                    for i in range(0, len(records), batch_size)
-                ]
-                for batch_idx, batch in enumerate(batches):
-                    print(
-                        f"Processing batch {batch_idx + 1} with {len(batch)} records from {xml_file}..."
-                    )
-                    os.makedirs("data_with_embeddings", exist_ok=True)
-                    batch_json_path = f"data_with_embeddings/scsb_update_{file_idx + 1}_batch_{batch_idx + 1}.json"
-                    with open(batch_json_path, "w") as f:
-                        json.dump(batch, f, indent=2)
-                    print(f"Saved batch embedding JSON: {batch_json_path}")
+    def _save_batches(self, records, file_idx, xml_file, batch_size):
+        batches = [records[i : i + batch_size] for i in range(0, len(records), batch_size)]
+        for batch_idx, batch in enumerate(batches):
+            print(f"Processing batch {batch_idx + 1} with {len(batch)} records from {xml_file}...")
+            os.makedirs("data_with_embeddings", exist_ok=True)
+            batch_json_path = f"data_with_embeddings/scsb_update_{file_idx + 1}_batch_{batch_idx + 1}.json"
+            with open(batch_json_path, "w") as f:
+                json.dump(batch, f, indent=2)
+            print(f"Saved batch embedding JSON: {batch_json_path}")
 
     def id(self):
         try:
@@ -271,49 +281,6 @@ class MARCXMLEmbeddingParser:
         except KeyError:
             return ""
 
-    # def gov_doc_number(self):
-    #     try:
-    #         return self.record["086"].get("a")
-    #     except KeyError:
-    #         return ""
-
-    # def is_electronic_resource(self):
-    #     return bool(
-    #         self.__is_electronic_resource_from_title()
-    #         or self.__is_electronic_resource_from_reproduction()
-    #         or self.__is_electronic_resource_from_description()
-    #         or self.__is_electronic_resource_from_007()
-    #     )
-
-    # def __is_electronic_resource_from_title(self):
-    #     try:
-    #         return self.record["245"].get("h") == "[electronic resource]"
-    #     except KeyError:
-    #         return False
-
-    # def __is_electronic_resource_from_reproduction(self):
-    #     try:
-    #         return re.match(
-    #             "electronic reproduction", self.record["533"].get("a"), re.IGNORECASE
-    #         )
-    #     except (KeyError, TypeError):
-    #         return False
-
-    # def __is_electronic_resource_from_description(self):
-    #     try:
-    #         subfield_a = self.record["300"].get("a")
-    #         if subfield_a:
-    #             return bool(re.search("online resource", subfield_a, re.IGNORECASE))
-    #         return False
-    #     except KeyError:
-    #         return False
-
-    # def __is_electronic_resource_from_007(self):
-    #     try:
-    #         return bool(self.record["007"].data[0] == "c")
-    #     except KeyError:
-    #         return False
-
     def __normalize_edition(self, edition):
         edition_mapping = {r"Ed\.": "Edition", r"ed\.": "edition"}
         try:
@@ -389,7 +356,7 @@ class MARCXMLEmbeddingParser:
         try:
             date_string = self.record["260"]["c"]
         except KeyError:
-            return ""
+            return None
         return self.__as_date(date_string)
 
     def __as_date(self, date_string):
@@ -401,102 +368,99 @@ class MARCXMLEmbeddingParser:
 
     marcxml_dir = "data_marcxml"
 
-    def extract_and_parse_marcxml(self, marcxml_dir, batch_size=10000):
-        print(f"Looking for tar.gz files in {marcxml_dir}...")
-        tar_files = sorted(
-            glob.glob(os.path.join(marcxml_dir, "incremental_*_new.tar.gz"))
-        )
-        print(f"Found {len(tar_files)} tar.gz files in {marcxml_dir}")
-        for tar_idx, tar_gz_path in enumerate(tar_files):
-            print(f"Processing {tar_gz_path}")
-            extract_dir = "data_marcxml/extracted"
-            os.makedirs(extract_dir, exist_ok=True)
-            with tarfile.open(tar_gz_path, "r:gz") as tar:
-                tar.extractall(path=extract_dir)
-            print(f"Extracted {tar_gz_path} to {extract_dir}")
-            for f in os.listdir(extract_dir):
-                file_path = os.path.join(extract_dir, f)
-                if not f.endswith(".xml"):
-                    new_file_path = file_path + ".xml"
-                    os.rename(file_path, new_file_path)
-            marc_files = [
-                os.path.join(extract_dir, f)
-                for f in os.listdir(extract_dir)
-                if f.endswith(".xml")
-            ]
-            print(f"Found {len(marc_files)} MARC files.")
-            records = []
-            records = parse_xml_to_array(
-                "data_marcxml/extracted/incremental_46370036360006421_20260305_020345[024]_new.xml"
-            )
-            print(f"Number of records: {len(records)}")
-            print(type(records[0]) if records else "No records")
-            records = []
+    # def extract_and_parse_marcxml(self, marcxml_dir, batch_size=10000):
+    #     print(f"Looking for tar.gz files in {marcxml_dir}...")
+    #     tar_files = sorted(
+    #         glob.glob(os.path.join(marcxml_dir, "incremental_*_new.tar.gz"))
+    #     )
+    #     print(f"Found {len(tar_files)} tar.gz files in {marcxml_dir}")
+    #     for tar_idx, tar_gz_path in enumerate(tar_files):
+    #         print(f"Processing {tar_gz_path}")
+    #         extract_dir = "data_marcxml/extracted"
+    #         os.makedirs(extract_dir, exist_ok=True)
+    #         with tarfile.open(tar_gz_path, "r:gz") as tar:
+    #             tar.extractall(path=extract_dir)
+    #         print(f"Extracted {tar_gz_path} to {extract_dir}")
+    #         for f in os.listdir(extract_dir):
+    #             file_path = os.path.join(extract_dir, f)
+    #             if not f.endswith(".xml"):
+    #                 new_file_path = file_path + ".xml"
+    #                 os.rename(file_path, new_file_path)
+    #         marc_files = [
+    #             os.path.join(extract_dir, f)
+    #             for f in os.listdir(extract_dir)
+    #             if f.endswith(".xml")
+    #         ]
+    #         print(f"Found {len(marc_files)} MARC files.")
+    #         records = []
+    #         records = parse_xml_to_array(
+    #             "data_marcxml/extracted/incremental_46370036360006421_20260305_020345[024]_new.xml"
+    #         )
+    #         print(f"Number of records: {len(records)}")
+    #         print(type(records[0]) if records else "No records")
+    #         records = []
 
-            for marc_file in marc_files:
-                marc_records = parse_xml_to_array(marc_file)
-                print(f"Parsed {len(marc_records)} records from {marc_file}")
-                for idx, record in enumerate(marc_records):
-                    print(f"Record {idx}: type={type(record)}, content={record}")
-                    if record is None:
-                        print(f"Record {idx} is None, skipping.")
-                        continue
-                    self.record = record
-                    print(f"Processing record: {record}")
-                    record_id = self.id()
-                    # Join field values and calculate one text embedding
-                    title = self.title()
-                    transliterated_title = self.transliterated_title()
-                    publication_year = self.publication_year()
-                    pagination = self.pagination()
-                    edition = self.edition()
-                    context_title_index = self.context_title_index()
-                    publisher_name = self.publisher_name()
-                    type_of = self.type_of()
-                    title_part = self.title_part()
-                    title_number = self.title_number()
-                    author = self.author()
-                    title_inclusive_dates = self.title_inclusive_dates()
-                    text = " ".join(
-                        [
-                            str(title),
-                            str(title_part),
-                            str(title_number),
-                            str(title_inclusive_dates),
-                            str(transliterated_title),
-                            str(author),
-                            str(publication_year),
-                            str(pagination),
-                            str(edition),
-                            str(context_title_index),
-                            str(publisher_name),
-                            str(type_of),
-                        ]
-                    )
-                    print(f"Combined text for embedding: {text}")
-                    embedding = self.model.encode(text)
-                    records.append(
-                        {"id": record_id, "text_embedding": embedding.tolist()}
-                    )
-                # Batching logic: split records into batches of batch_size
-                batches = [
-                    records[i : i + batch_size]
-                    for i in range(0, len(records), batch_size)
-                ]
-                for batch_idx, batch in enumerate(batches):
-                    print(
-                        f"Processing batch {batch_idx + 1} with {len(batch)} records from {marc_file}..."
-                    )
-                    os.makedirs("data_with_embeddings", exist_ok=True)
-                    batch_json_path = f"data_with_embeddings/marcxml_embeddings_{tar_idx + 1}_batch_{batch_idx + 1}.json"
-                    with open(batch_json_path, "w") as f:
-                        json.dump(batch, f, indent=2)
-                    print(f"Saved batch embedding JSON: {batch_json_path}")
+    #         for marc_file in marc_files:
+    #             marc_records = parse_xml_to_array(marc_file)
+    #             print(f"Parsed {len(marc_records)} records from {marc_file}")
+    #             for idx, record in enumerate(marc_records):
+    #                 print(f"Record {idx}: type={type(record)}, content={record}")
+    #                 if record is None:
+    #                     print(f"Record {idx} is None, skipping.")
+    #                     continue
+    #                 self.record = record
+    #                 print(f"Processing record: {record}")
+    #                 record_id = self.id()
+    #                 # Join field values and calculate one text embedding
+    #                 title = self.title()
+    #                 transliterated_title = self.transliterated_title()
+    #                 publication_year = self.publication_year()
+    #                 pagination = self.pagination()
+    #                 edition = self.edition()
+    #                 context_title_index = self.context_title_index()
+    #                 publisher_name = self.publisher_name()
+    #                 type_of = self.type_of()
+    #                 title_part = self.title_part()
+    #                 title_number = self.title_number()
+    #                 author = self.author()
+    #                 title_inclusive_dates = self.title_inclusive_dates()
+    #                 text = " ".join(
+    #                     [
+    #                         str(title),
+    #                         str(title_part),
+    #                         str(title_number),
+    #                         str(title_inclusive_dates),
+    #                         str(transliterated_title),
+    #                         str(author),
+    #                         str(publication_year),
+    #                         str(pagination),
+    #                         str(edition),
+    #                         str(context_title_index),
+    #                         str(publisher_name),
+    #                         str(type_of),
+    #                     ]
+    #                 )
+    #                 print(f"Combined text for embedding: {text}")
+    #                 embedding = self.model.encode(text)
+    #                 records.append(
+    #                     {"id": record_id, "text_embedding": embedding.tolist()}
+    #                 )
+    #             # Batching logic: split records into batches of batch_size
+    #             batches = [
+    #                 records[i : i + batch_size]
+    #                 for i in range(0, len(records), batch_size)
+    #             ]
+    #             for batch_idx, batch in enumerate(batches):
+    #                 print(
+    #                     f"Processing batch {batch_idx + 1} with {len(batch)} records from {marc_file}..."
+    #                 )
+    #                 os.makedirs("data_with_embeddings", exist_ok=True)
+    #                 batch_json_path = f"data_with_embeddings/marcxml_embeddings_{tar_idx + 1}_batch_{batch_idx + 1}.json"
+    #                 with open(batch_json_path, "w") as f:
+    #                     json.dump(batch, f, indent=2)
+    #                 print(f"Saved batch embedding JSON: {batch_json_path}")
 
-    def __init__(self, model_name="all-MiniLM-L6-v2"):
-        self.model = SentenceTransformer(model_name)
-
-    def create_all_batch_1_embedding_matrix(self):
+    def create_embedding_matrix(self):
         """
         Loads all marcxml_embeddings_*_batch_1.json files from data_with_embeddings/,
         creates a matrix of embeddings (IDs as rows, embedding dims as columns),
@@ -532,5 +496,5 @@ if __name__ == "__main__":
     parser = MARCXMLEmbeddingParser()
     marcxml_dir = "data_marcxml"
     # parser.extract_and_parse_marcxml(marcxml_dir)
-    parser.create_all_batch_1_embedding_matrix()
-    # parser.parse_scsb_update_files(input_dir=marcxml_dir, batch_size=10000)
+    # parser.create_embedding_matrix()
+    parser.parse_scsb_update_files(input_dir=marcxml_dir, batch_size=10000)
