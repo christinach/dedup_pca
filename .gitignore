@@ -8,11 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
-data_with_embeddings/
-embeddings_matrix/
-similarities_matrix/
-pca_results/
-fixed_json/
-raw_data/
+data_with_embeddings/*
+embeddings_matrix/*
+similarities_matrix/*
+pca_results/*
+fixed_json/*
+raw_data/*
 .DS_Store
-data_marcxml/
+data_marcxml/*
