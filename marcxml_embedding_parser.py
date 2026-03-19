@@ -13,7 +13,7 @@ import numpy as np
 class MARCXMLEmbeddingParser:
     def __init__(self, model_name="all-MiniLM-L6-v2"):
         self.model = SentenceTransformer(model_name)
-    
+
     def parse_scsb_update_files(self, input_dir="data_marcxml", batch_size=10000):
         gz_files = self._find_gz_files(input_dir)
         self._extract_gz_files(gz_files, input_dir)
@@ -33,6 +33,7 @@ class MARCXMLEmbeddingParser:
     def _extract_gz_files(self, gz_files, input_dir):
         os.makedirs(os.path.join(input_dir, "extracted"), exist_ok=True)
         import gzip
+
         for gz_path in gz_files:
             print(f"Processing {gz_path}")
             xml_filename = os.path.basename(gz_path).replace(".xml.gz", ".xml")
@@ -96,9 +97,13 @@ class MARCXMLEmbeddingParser:
         return records
 
     def _save_batches(self, records, file_idx, xml_file, batch_size):
-        batches = [records[i : i + batch_size] for i in range(0, len(records), batch_size)]
+        batches = [
+            records[i : i + batch_size] for i in range(0, len(records), batch_size)
+        ]
         for batch_idx, batch in enumerate(batches):
-            print(f"Processing batch {batch_idx + 1} with {len(batch)} records from {xml_file}...")
+            print(
+                f"Processing batch {batch_idx + 1} with {len(batch)} records from {xml_file}..."
+            )
             os.makedirs("data_with_embeddings", exist_ok=True)
             batch_json_path = f"data_with_embeddings/scsb_update_{file_idx + 1}_batch_{batch_idx + 1}.json"
             with open(batch_json_path, "w") as f:
@@ -497,4 +502,4 @@ if __name__ == "__main__":
     marcxml_dir = "data_marcxml"
     # parser.extract_and_parse_marcxml(marcxml_dir)
     # parser.create_embedding_matrix()
-    parser.parse_scsb_update_files(input_dir=marcxml_dir, batch_size=10000)
+    # parser.parse_scsb_update_files(input_dir=marcxml_dir, batch_size=10000)

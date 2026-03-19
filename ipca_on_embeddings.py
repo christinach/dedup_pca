@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import euclidean_distances
 from sample_embeddings_matrix import SampleEmbeddingsMatrix
 
+
 class IPCAOnEmbeddings:
     def __init__(self):
         self._embedding_values_cache = None
@@ -26,7 +27,7 @@ class IPCAOnEmbeddings:
         n_features = data_rescaled.shape[1]
         n_components = min(n_components, n_features)
         print(
-            f"Number of components for {variance_threshold*100}% variance: {n_components}"
+            f"Number of components for {variance_threshold * 100}% variance: {n_components}"
         )
         return n_components
 
@@ -37,6 +38,7 @@ class IPCAOnEmbeddings:
 
     def _embedding_values(self):
         from sklearn.impute import SimpleImputer
+
         if self._embedding_values_cache is None:
             create_sample_embeddings_matrix = SampleEmbeddingsMatrix()
             create_sample_embeddings_matrix.create_sample()
@@ -45,13 +47,12 @@ class IPCAOnEmbeddings:
             embedding_values = imputer.fit_transform(embedding_df.values)
             self._embedding_values_cache = embedding_values
         return self._embedding_values_cache
-    
+
     ## IncrementalPCA (IPCA) on embeddings ##
     def calculate_ipca(self, n_components, batch_size):
         print(f"{self.timestamp()} Starting IncrementalPCA on embeddings...")
         # batch_files = sorted(glob.glob("embeddings_matrix/scsb_update_batch_*_matrix.csv"))
         return IncrementalPCA(n_components=n_components, batch_size=batch_size)
-     
 
     def ipca_fit(self, batch_files, n_components, batch_size):
         scaler = StandardScaler()
@@ -59,7 +60,9 @@ class IPCAOnEmbeddings:
         n_features = first_batch_data.shape[1]
         n_samples_first_batch = first_batch_data.shape[0]
         n_components = min(n_components, n_features, n_samples_first_batch)
-        print(f"n_components: {n_components}, n_features: {n_features}, n_samples_first_batch: {n_samples_first_batch}")
+        print(
+            f"n_components: {n_components}, n_features: {n_features}, n_samples_first_batch: {n_samples_first_batch}"
+        )
         ipca = IncrementalPCA(n_components=n_components, batch_size=batch_size)
         for batch_file in batch_files:
             print(f"Fitting IPCA on {batch_file}")
@@ -89,10 +92,12 @@ class IPCAOnEmbeddings:
 
         print("Cumulative explained variance (IPCA):")
         print(np.cumsum(ipca.explained_variance_ratio_))
-    
+
     def euclidean_distances_in_ipca_space(self, X_ipca):
         distances_ipca = euclidean_distances(X_ipca)
-        print("Sample pairwise distances in IPCA space (first 5):", distances_ipca[0, 1:6])
+        print(
+            "Sample pairwise distances in IPCA space (first 5):", distances_ipca[0, 1:6]
+        )
         print("Max distance in IPCA space:", np.max(distances_ipca))
         print(
             "Min distance in IPCA space (excluding zero):",
@@ -108,7 +113,9 @@ class IPCAOnEmbeddings:
             for j in range(i + 1, euclidean_distances_in_ipca_space.shape[1]):
                 if euclidean_distances_in_ipca_space[i, j] < threshold_ipca:
                     duplicate_ipca_pairs.append((i, j))
-        print(f"Found {len(duplicate_ipca_pairs)} potential duplicate pairs in IPCA space.")
+        print(
+            f"Found {len(duplicate_ipca_pairs)} potential duplicate pairs in IPCA space."
+        )
         # Build combined ID list from all batch JSON files
         combined_ids = []
         batch_json_files = sorted(
@@ -118,7 +125,10 @@ class IPCAOnEmbeddings:
             with open(batch_json_file, "r") as f:
                 batch_data = json.load(f)
                 combined_ids.extend(
-                    [item.get("id", f"index_{idx}") for idx, item in enumerate(batch_data)]
+                    [
+                        item.get("id", f"index_{idx}")
+                        for idx, item in enumerate(batch_data)
+                    ]
                 )
         if duplicate_ipca_pairs:
             print("Duplicate pair indices and record IDs (IPCA):")
@@ -127,51 +137,56 @@ class IPCAOnEmbeddings:
                 id_j = combined_ids[j] if j < len(combined_ids) else f"index_{j}"
                 print(f"Pair: ({i}, {j}) -> IDs: {id_i}, {id_j}")
 
-    ### start PCA ###
-    # print(f"{timestamp()} Starting standard PCA fit...")
-    # print(f"Shape of X before standard PCA: {X.shape}")
-    # print(f"{timestamp()} Running standard PCA with n_components={n_components}...")
-    # pca = PCA(n_components=n_components)
-    # X_pca = pca.fit_transform(X)
-    # print(f"{timestamp()} Standard PCA fit complete.")
+        ### start PCA ###
+        # print(f"{timestamp()} Starting standard PCA fit...")
+        # print(f"Shape of X before standard PCA: {X.shape}")
+        # print(f"{timestamp()} Running standard PCA with n_components={n_components}...")
+        # pca = PCA(n_components=n_components)
+        # X_pca = pca.fit_transform(X)
+        # print(f"{timestamp()} Standard PCA fit complete.")
 
-    # # Plotting (no target labels, so just scatter all points)
-    # for X_transformed, title in [(X_pca, "PCA")]:
-    #     print(f"Plotting results for {title}...")
-    #     plt.figure(figsize=(8, 8))
-    #     plt.scatter(X_transformed[:, 0], X_transformed[:, 1], color="navy", lw=2)
-    #     plt.title(title + " on similarities_incremental_03032026_matrix.csv")
-    #     plt.axis("equal")
+        # # Plotting (no target labels, so just scatter all points)
+        # for X_transformed, title in [(X_pca, "PCA")]:
+        #     print(f"Plotting results for {title}...")
+        #     plt.figure(figsize=(8, 8))
+        #     plt.scatter(X_transformed[:, 0], X_transformed[:, 1], color="navy", lw=2)
+        #     plt.title(title + " on similarities_incremental_03032026_matrix.csv")
+        #     plt.axis("equal")
 
-    # # X_pca is the transformed data
-    # print("PCA transformed data (first 5 rows):")
-    # print(X_pca[:5])
+        # # X_pca is the transformed data
+        # print("PCA transformed data (first 5 rows):")
+        # print(X_pca[:5])
 
-    # # Explained variance ratio for each component
-    # print("Explained variance ratio:")
-    # print(pca.explained_variance_ratio_)
+        # # Explained variance ratio for each component
+        # print("Explained variance ratio:")
+        # print(pca.explained_variance_ratio_)
 
-    # # Cumulative explained variance
-    # print("Cumulative explained variance:")
-    # print(np.cumsum(pca.explained_variance_ratio_))
+        # # Cumulative explained variance
+        # print("Cumulative explained variance:")
+        # print(np.cumsum(pca.explained_variance_ratio_))
 
-    # # Plot cumulative explained variance for all components
-    # # The elbow point of the plot indicates the the number of components to retain for a good balance between dimensionality reduction and information retention
-    # plt.figure(figsize=(10, 6))
-    # pca_full = PCA().fit(X)
-    # cumulative_variance = np.cumsum(pca_full.explained_variance_ratio_)
-    # plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker="o")
-    # plt.xlabel("Number of Components")
-    # plt.ylabel("Cumulative Explained Variance")
-    # plt.title("Cumulative Explained Variance by Number of PCA Components")
-    # plt.grid(True)
-    # plt.tight_layout()
+        # # Plot cumulative explained variance for all components
+        # # The elbow point of the plot indicates the the number of components to retain for a good balance between dimensionality reduction and information retention
+        # plt.figure(figsize=(10, 6))
+        # pca_full = PCA().fit(X)
+        # cumulative_variance = np.cumsum(pca_full.explained_variance_ratio_)
+        # plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker="o")
+        # plt.xlabel("Number of Components")
+        # plt.ylabel("Cumulative Explained Variance")
+        # plt.title("Cumulative Explained Variance by Number of PCA Components")
+        # plt.grid(True)
+        # plt.tight_layout()
 
-        print("Sample pairwise distances in IPCA space (first 5):", euclidean_distances_in_ipca_space[0, 1:6])
+        print(
+            "Sample pairwise distances in IPCA space (first 5):",
+            euclidean_distances_in_ipca_space[0, 1:6],
+        )
         print("Max distance in IPCA space:", np.max(euclidean_distances_in_ipca_space))
         print(
             "Min distance in IPCA space (excluding zero):",
-            np.min(euclidean_distances_in_ipca_space[euclidean_distances_in_ipca_space > 0]),
+            np.min(
+                euclidean_distances_in_ipca_space[euclidean_distances_in_ipca_space > 0]
+            ),
         )
 
         print("Showing plots...")
