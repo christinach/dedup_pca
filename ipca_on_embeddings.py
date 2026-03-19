@@ -92,7 +92,7 @@ class IPCAOnEmbeddings:
 
         print("Cumulative explained variance (IPCA):")
         print(np.cumsum(ipca.explained_variance_ratio_))
-
+        return X_ipca
     def euclidean_distances_in_ipca_space(self, X_ipca):
         distances_ipca = euclidean_distances(X_ipca)
         print(
@@ -103,8 +103,9 @@ class IPCAOnEmbeddings:
             "Min distance in IPCA space (excluding zero):",
             np.min(distances_ipca[distances_ipca > 0]),
         )
+        return distances_ipca
 
-    def identify_duplicates(euclidean_distances_in_ipca_space):
+    def identify_duplicates(self, euclidean_distances_in_ipca_space):
         threshold_ipca = 2.39  # Adjust this value
 
         print("threshold_ipca:", threshold_ipca)
@@ -133,49 +134,10 @@ class IPCAOnEmbeddings:
         if duplicate_ipca_pairs:
             print("Duplicate pair indices and record IDs (IPCA):")
             for i, j in duplicate_ipca_pairs:
-                id_i = combined_ids[i] if i < len(combined_ids) else f"index_{i}"
-                id_j = combined_ids[j] if j < len(combined_ids) else f"index_{j}"
-                print(f"Pair: ({i}, {j}) -> IDs: {id_i}, {id_j}")
-
-        ### start PCA ###
-        # print(f"{timestamp()} Starting standard PCA fit...")
-        # print(f"Shape of X before standard PCA: {X.shape}")
-        # print(f"{timestamp()} Running standard PCA with n_components={n_components}...")
-        # pca = PCA(n_components=n_components)
-        # X_pca = pca.fit_transform(X)
-        # print(f"{timestamp()} Standard PCA fit complete.")
-
-        # # Plotting (no target labels, so just scatter all points)
-        # for X_transformed, title in [(X_pca, "PCA")]:
-        #     print(f"Plotting results for {title}...")
-        #     plt.figure(figsize=(8, 8))
-        #     plt.scatter(X_transformed[:, 0], X_transformed[:, 1], color="navy", lw=2)
-        #     plt.title(title + " on similarities_incremental_03032026_matrix.csv")
-        #     plt.axis("equal")
-
-        # # X_pca is the transformed data
-        # print("PCA transformed data (first 5 rows):")
-        # print(X_pca[:5])
-
-        # # Explained variance ratio for each component
-        # print("Explained variance ratio:")
-        # print(pca.explained_variance_ratio_)
-
-        # # Cumulative explained variance
-        # print("Cumulative explained variance:")
-        # print(np.cumsum(pca.explained_variance_ratio_))
-
-        # # Plot cumulative explained variance for all components
-        # # The elbow point of the plot indicates the the number of components to retain for a good balance between dimensionality reduction and information retention
-        # plt.figure(figsize=(10, 6))
-        # pca_full = PCA().fit(X)
-        # cumulative_variance = np.cumsum(pca_full.explained_variance_ratio_)
-        # plt.plot(range(1, len(cumulative_variance) + 1), cumulative_variance, marker="o")
-        # plt.xlabel("Number of Components")
-        # plt.ylabel("Cumulative Explained Variance")
-        # plt.title("Cumulative Explained Variance by Number of PCA Components")
-        # plt.grid(True)
-        # plt.tight_layout()
+                if i < len(combined_ids) and j < len(combined_ids):
+                    id_i = combined_ids[i]
+                    id_j = combined_ids[j]
+                    print(f"Pair: ({i}, {j}) -> IDs: {id_i}, {id_j}")
 
         print(
             "Sample pairwise distances in IPCA space (first 5):",
@@ -188,7 +150,3 @@ class IPCAOnEmbeddings:
                 euclidean_distances_in_ipca_space[euclidean_distances_in_ipca_space > 0]
             ),
         )
-
-        print("Showing plots...")
-
-        plt.show()
