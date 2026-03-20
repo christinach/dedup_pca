@@ -14,7 +14,6 @@ embeddings_matrix/*
 !embeddings_matrix/.gitkeep
 similarities_matrix/*
 !similarities_matrix/.gitkeep
-pca_results/*
 !pca_results/.gitkeep
 fixed_json/*
 !fixed_json/.gitkeep
@@ -22,4 +21,6 @@ raw_data/*
 !raw_data/.gitkeep
 .DS_Store
 data_marcxml/*
-!data_marcxml/.gitkeep
+!data_marcxml/extracted
+data_marcxml/extracted/*
+!data_marcxml/extracted/.gitkeep

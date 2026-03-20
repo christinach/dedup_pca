@@ -93,6 +93,7 @@ class IPCAOnEmbeddings:
         print("Cumulative explained variance (IPCA):")
         print(np.cumsum(ipca.explained_variance_ratio_))
         return X_ipca
+
     def euclidean_distances_in_ipca_space(self, X_ipca):
         distances_ipca = euclidean_distances(X_ipca)
         print(
@@ -105,9 +106,17 @@ class IPCAOnEmbeddings:
         )
         return distances_ipca
 
-    def identify_duplicates(self, euclidean_distances_in_ipca_space):
-        threshold_ipca = 2.39  # Adjust this value
+    def threshold_ipca(self, distances_ipca):
+        # return the indices for the upper triangle of the matrix;
+        # get all unique pairwise distances, excluding self-distances
+        flat_distances = distances_ipca[np.triu_indices_from(distances_ipca, k=1)]
+        # set the threshold to get the closest 1% of pairs.
+        min_distance = np.min(flat_distances)
+        threshold_ipca = min_distance + 1e-4
+        print("Automated threshold_ipca min_distance:", threshold_ipca)
+        return threshold_ipca
 
+    def identify_duplicates(self, euclidean_distances_in_ipca_space, threshold_ipca):
         print("threshold_ipca:", threshold_ipca)
         duplicate_ipca_pairs = []
         for i in range(euclidean_distances_in_ipca_space.shape[0]):
