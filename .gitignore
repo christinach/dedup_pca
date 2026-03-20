@@ -5,9 +5,11 @@ build/
 dist/
 wheels/
 *.egg-info
+.ruff_cache/
+.venv/
 
 # Virtual environments
-.venv
+
 data_with_embeddings/*
 !data_with_embeddings/.gitkeep
 embeddings_matrix/*
